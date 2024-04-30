@@ -5,10 +5,12 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from users.utils import get_user_from_auth_request
 from .models import TopicProgress, Question
 from .serializers import TopicProgressSerializer
+from user_progress.models import UserProgress
 
-class TopicProgressView(generics.ListAPIView):
+class TopicProgressListView(generics.ListAPIView):
     serializer_class = TopicProgressSerializer
 
     def get_permissions(self):
@@ -41,3 +43,21 @@ class TopicProgressUpdateSet(viewsets.ModelViewSet):
 
         # Return the updated topic progress
         return Response({'status': 'question added'}, status=status.HTTP_200_OK)
+
+
+class TopicProgressView(generics.RetrieveAPIView):
+    serializer_class = TopicProgressSerializer
+
+    def get_permissions(self):
+        self.permission_classes = [IsAuthenticated]
+        return super(TopicProgressView, self).get_permissions()
+
+    def get_object(self):
+        user = get_user_from_auth_request(self.request)
+        if user is None:
+            return Response({'error': 'Auth is required'}, status=status.HTTP_400_BAD_REQUEST)
+        topic_progress_id = self.request.query_params.get('id')
+        level_id = user.level_id
+        user_progress = get_object_or_404(UserProgress, user_id=user.id, level_id=level_id)
+        topic_progress = user_progress.topic_progresses.filter(id=topic_progress_id).first()
+        return topic_progress

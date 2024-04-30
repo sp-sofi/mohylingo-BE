@@ -11,26 +11,20 @@ from django.shortcuts import get_object_or_404
 from lexemes.models import Lexeme
 
 
-class UserProgressListView(generics.ListAPIView):
+class UserProgressView(generics.RetrieveAPIView):
     serializer_class = UserProgressSerializer
 
     def get_permissions(self):
         self.permission_classes = [IsAuthenticated]
-        return super(UserProgressListView, self).get_permissions()
+        return super(UserProgressView, self).get_permissions()
 
-    def get_queryset(self):
-        queryset = UserProgress.objects.all()
+    def get_object(self):
         user = get_user_from_auth_request(self.request)
-        print('user', user)
         if user is None:
             return Response({'error': 'Auth is required'}, status=status.HTTP_400_BAD_REQUEST)
-        queryset = queryset.filter(user_id=user.id)
-
-        level_id = self.request.query_params.get('level_id')
-        if level_id is not None:
-            queryset = queryset.filter(level_id=level_id)
-
-        return queryset
+        level_id = user.level_id
+        user_progress = get_object_or_404(UserProgress, user_id=user.id, level_id=level_id)
+        return user_progress
 
 
 class UserProgressUpdateSet(viewsets.ModelViewSet):
