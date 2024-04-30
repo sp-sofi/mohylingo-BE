@@ -3,5 +3,5 @@ from .views import QuestionsListView, NonLearnedQuestionsListView
 
 urlpatterns = [
     path('questions/', QuestionsListView.as_view(), name='questions-list'),
-    path('nonLearnedQuestions/', NonLearnedQuestionsListView.as_view(), name='nonLearnedQuestions'),
+    path('questions/nonLearned/', NonLearnedQuestionsListView.as_view(), name='nonLearnedQuestions'),
 ]
