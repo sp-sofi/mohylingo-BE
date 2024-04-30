@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from .serializers import UserSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from rest_framework.views import APIView
 from user_progress.models import UserProgress
 from topics.models import Topic
 
@@ -26,11 +25,9 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()  # Password is hashed in the serializer
-
         token = Token.objects.create(user=user)
         data = serializer.data
         data['token'] = token.key  # Include the token in the response
-
         topics = Topic.objects.filter(level=user.level)
         topic_progresses = []
         for topic in topics:
