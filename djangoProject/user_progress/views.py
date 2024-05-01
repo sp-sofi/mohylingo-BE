@@ -8,6 +8,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from questions.models import Question
 from lexemes.models import Lexeme
 
 
@@ -59,3 +60,29 @@ class UserProgressUpdateSet(viewsets.ModelViewSet):
         # Return the updated topic progress
         return Response({'status': 'word added'}, status=status.HTTP_200_OK)
 
+
+class CourseProgressView(generics.GenericAPIView):
+    def get_permissions(self):
+        self.permission_classes = [IsAuthenticated]
+        return super(CourseProgressView, self).get_permissions()
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        level_id = user.level_id
+
+        total_questions = Question.objects.filter(level_id=level_id).count()
+        total_lexemes = Lexeme.objects.filter(level_id=level_id).count()
+        user_progress = UserProgress.objects.filter(user_id=user.id, level_id=level_id).first()
+
+        learned_questions = user_progress.topic_progresses.filter(questions_learned__isnull=False).count()
+        learned_lexemes = user_progress.words_learned.count() if user_progress else 0
+
+        course_progress_percent =  (learned_questions + learned_lexemes) / (total_questions + total_lexemes) * 100
+
+        return Response({
+            'total_questions': total_questions,
+            'learned_questions': learned_questions,
+            'total_lexemes': total_lexemes,
+            'learned_lexemes': learned_lexemes,
+            'course_progress_percent': course_progress_percent,
+        })
