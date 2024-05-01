@@ -9,4 +9,4 @@ class UserProgressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProgress
-        fields = ['id', 'user', 'topic_progresses', 'words_learned', 'level', 'days_in_row', 'chat_id']
+        fields = ['id', 'user', 'topic_progresses', 'words_learned', 'level', 'days_in_row', 'chat_id', 'is_finished']
