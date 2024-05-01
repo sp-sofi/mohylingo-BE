@@ -1,6 +1,7 @@
 from topic_progress.models import TopicProgress
 from .models import CustomUser
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics, mixins
+from users.utils import check_user_finished_course
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from .serializers import UserSerializer
@@ -53,3 +54,31 @@ class CustomAuthToken(ObtainAuthToken):
             'user_id': user.pk,
             'username': user.username
         })
+
+class StartNewCourseView(generics.GenericAPIView):
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        self.permission_classes = [IsAuthenticated]
+        return super(StartNewCourseView, self).get_permissions()
+
+    def get_object(self):
+        return self.request.user
+
+    def post(self, request, *args, **kwargs):
+        user = self.get_object()
+        is_course_finished = check_user_finished_course(user)
+        if not is_course_finished:
+            return Response({'error': 'The course is not finished yet'}, status=status.HTTP_400_BAD_REQUEST)
+        user.level_id += 1
+        user.save()
+        topics = Topic.objects.filter(level=user.level)
+        topic_progresses = []
+        for topic in topics:
+            topic_progress = TopicProgress.objects.create(topic=topic)
+            topic_progresses.append(topic_progress)
+
+        user_progress = UserProgress.objects.create(user=user, level=user.level)
+        user_progress.topic_progresses.set(topic_progresses)
+
+        return Response(self.get_serializer(user).data)

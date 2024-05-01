@@ -13,9 +13,9 @@ class UserProgress(models.Model):
     level = models.ForeignKey(Level, on_delete=models.SET_NULL, null=True, blank=True)
     days_in_row = models.IntegerField(default=0)
     chat_id = models.IntegerField(null=True, blank=True)
+    is_finished = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        print(self.id, self.user, self.level, self.days_in_row, self.chat_id)
-        if not self.chat_id:  # Check if chat_id is not set
+        if not self.chat_id:
             UserProgress.objects.filter(id=self.id).update(chat_id=self.id)

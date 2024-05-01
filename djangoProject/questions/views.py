@@ -3,7 +3,6 @@ from rest_framework.permissions import IsAuthenticated
 from users.utils import get_user_from_auth_request
 from rest_framework.response import Response
 from user_progress.models import UserProgress
-from topic_progress.models import TopicProgress
 from .models import Question
 from .serializers import QuestionSerializer
 
@@ -39,7 +38,7 @@ class NonLearnedQuestionsListView(generics.ListAPIView):
         user = get_user_from_auth_request(self.request)
         if user is None:
             return Response({'error': 'Auth is required'}, status=status.HTTP_400_BAD_REQUEST)
-        level_id = user.level_id  # assuming the user model has a level_id field
+        level_id = user.level_id
         topic_id = self.request.query_params.get('topic_id')
 
         user_progress = UserProgress.objects.filter(user_id=user.id, level_id=level_id).first()
@@ -47,11 +46,10 @@ class NonLearnedQuestionsListView(generics.ListAPIView):
             return Question.objects.none()
 
         topic_progress = user_progress.topic_progresses.filter(topic_id=topic_id).first()
-        # topic_progress = TopicProgress.objects.filter(user_progress=user_progress, topic_id=topic_id).first()
         if topic_progress is None:
             return Question.objects.none()
 
-        learned_questions = topic_progress.questions_learned.all()  # assuming the TopicProgress model has a learned_questions field
+        learned_questions = topic_progress.questions_learned.all()
 
         queryset = Question.objects.filter(level_id=level_id, topic_id=topic_id).exclude(id__in=learned_questions)
 

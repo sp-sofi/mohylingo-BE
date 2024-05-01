@@ -5,7 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from users.utils import get_user_from_auth_request
+from users.utils import get_user_from_auth_request, check_user_finished_course
 from .models import TopicProgress, Question
 from .serializers import TopicProgressSerializer
 from user_progress.models import UserProgress
@@ -26,8 +26,15 @@ class TopicProgressUpdateSet(viewsets.ModelViewSet):
     queryset = TopicProgress.objects.all()
     serializer_class = TopicProgressSerializer
 
+    def get_permissions(self):
+        self.permission_classes = [IsAuthenticated]
+        return super(TopicProgressUpdateSet, self).get_permissions()
+
     @action(detail=True, methods=['put'], url_path='learnQuestion')
     def add_question(self, request, pk=None):
+        user = get_user_from_auth_request(self.request)
+        if user is None:
+            return Response({'error': 'Auth is required'}, status=status.HTTP_400_BAD_REQUEST)
         """Adds a question to the questions_learned set of a TopicProgress."""
         topic_progress = get_object_or_404(TopicProgress, pk=pk)
         question_id = request.data.get('question_id')
@@ -40,6 +47,8 @@ class TopicProgressUpdateSet(viewsets.ModelViewSet):
 
         # Add the question to the questions_learned set
         topic_progress.questions_learned.add(question)
+
+        check_user_finished_course(user)
 
         # Return the updated topic progress
         return Response({'status': 'question added'}, status=status.HTTP_200_OK)
