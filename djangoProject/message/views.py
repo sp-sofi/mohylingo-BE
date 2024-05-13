@@ -1,4 +1,5 @@
 from rest_framework import generics, status
+from vertexai.language_models import TextGenerationModel
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,6 +7,7 @@ from user_progress.models import UserProgress
 from .models import Message
 from .serializers import MessageSerializer
 
+ai_model = TextGenerationModel.from_pretrained('text-bison@001')
 
 class MessageListView(generics.ListAPIView):
     serializer_class = MessageSerializer
@@ -36,15 +38,11 @@ class SendMessageView(APIView):
             return Response({'message': 'No message provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Save the user's message to the database
-        user_progress = UserProgress.objects.get(user=self.request.user)
-        user_message = Message.objects.create(user=request.user, message=message, chat_id=user_progress.chat_id)
-
-        # Generate a response using the AI model
-        # ai_response = generate_ai_response(message)  # replace this with your AI model
-
-        # Save the AI's response to the database
-        # ai_message = Message.objects.create(user=None, message=ai_response)
-
+        user_progress = UserProgress.objects.get(user=self.request.user, level_id=self.request.user.level_id)
+        Message.objects.create(sender=request.user, text=message, chat_id=user_progress.chat_id)
+        ai_response = ai_model.predict(message).text
+        Message.objects.create(sender_id=1, text=ai_response, chat_id=user_progress.chat_id)
+        print(ai_response)
         return Response({'message': ai_response}, status=status.HTTP_200_OK)
 
 
@@ -56,5 +54,5 @@ class ChatHistoryView(generics.ListAPIView):
         return super(ChatHistoryView, self).get_permissions()
 
     def get_queryset(self):
-        user_progress = UserProgress.objects.get(user=self.request.user)
-        return Message.objects.filter(chat_id=user_progress.chat_id).order_by('-timestamp')
+        user_progress = UserProgress.objects.get(user=self.request.user, level_id=self.request.user.level_id)
+        return Message.objects.filter(chat_id=user_progress.chat_id).order_by('created_at')
